@@ -21,3 +21,4 @@ dependencies:
       - nltk
       - absl-py
       - tensorboardX
+      - pyquery
