@@ -3,7 +3,6 @@ Modified from https://github.com/rupy/PascalSentenceDataset
 Thanks Rupy, nice drum set
 """
 
-import csv
 import os
 import requests
 
@@ -24,7 +23,7 @@ def download_images():
         category, img_file_name = os.path.split(img_src)
 
         # make category directories
-        output_dir = os.path.join(DATASET_DIR, 'images', category)
+        output_dir = os.path.join(DATASET_DIR, 'images')
         os.makedirs(output_dir, exist_ok=True)
 
         # download image
@@ -56,12 +55,12 @@ def download_sentences():
         category, img_file_name = os.path.split(img_src)
 
         # make category directories
-        output_dir = os.path.join(DATASET_DIR, 'sentences', category)
+        output_dir = os.path.join(DATASET_DIR, 'sentences')
         os.makedirs(output_dir, exist_ok=True)
 
         # dowonload sentences
         head, tail = os.path.splitext(img_file_name)
-        sentence_file_name = head + "txt"
+        sentence_file_name = head + ".txt"
         output = os.path.join(output_dir, sentence_file_name)
         if os.path.isfile(output):
             print("Already downloaded, Skipping: %s" % output)
@@ -71,21 +70,7 @@ def download_sentences():
                 f.write(td.text() + "\n")
 
 
-def create_correspondence_data():
-    output = os.path.join(DATASET_DIR, 'correspondence.csv')
-    dom = PyQuery(DATASET_URL)
-    writer = csv.writer(open(output, 'wb'))
-    for i, img in enumerate(dom('img').items()):
-        img_src = img.attr['src']
-        print("%d => %s" % (i + 1, img_src))
-        writer.writerow([i + 1, img_src])
-
-
 if __name__ == "__main__":
 
-    # download images
     download_images()
-    # download sentences
     download_sentences()
-    # create correspondence data by dataset
-    create_correspondence_data()
