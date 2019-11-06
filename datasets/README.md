@@ -22,7 +22,7 @@ Or the official website is [here](http://hockenmaier.cs.illinois.edu/DenotationG
 form due to the copyright of the Flickr images, and the data **_might_** get sent to you.
 
 To organise the dataset make a `Flickr30k` directory in `datasets`:
-```commandline
+```
 cd datasets
 mkdir Flickr30k
 ```
@@ -32,12 +32,18 @@ datasets/Flickr30k/flickr-image-dataset.zip
 ```
 
 Then run `organise_flickr30k.sh` from the root dir:
-```commandline
+```
 VidCap$ . datasets/organise_flickr30k.sh
 ```
 
 If you also want [**Flickr 30k Entities**](https://github.com/BryanPlummer/flickr30k_entities), which adds 244k 
 coreference chains and 276k manually annotated bounding boxes, then follow up by running `get_flickr30k_entities.sh`:
-```commandline
+```
 VidCap$ . datasets/get_flickr30k_entities.sh
+```
+
+### MS Coco
+To **download** the dataset run `get_coco_dataset.sh` from the root dir:
+```
+VidCap$ . datasets/get_coco_dataset.py
 ```
