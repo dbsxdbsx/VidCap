@@ -6,5 +6,6 @@ A captioning pipeline for video written in MXNet and Gluon.
 ## Datasets
 Currently Supports:
 - [PascalVOC Sentences](http://vision.cs.uiuc.edu/pascal-sentences/)
+- [Flickr 30k](http://hockenmaier.cs.illinois.edu/DenotationGraph/)
 
 See [datasets](/datasets/) for downloading and organisation information...
