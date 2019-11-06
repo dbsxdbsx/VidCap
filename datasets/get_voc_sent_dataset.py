@@ -23,7 +23,7 @@ def download_images():
         category, img_file_name = os.path.split(img_src)
 
         # make category directories
-        output_dir = os.path.join(DATASET_DIR, 'images')
+        output_dir = os.path.join(DATASET_DIR, 'Images')
         os.makedirs(output_dir, exist_ok=True)
 
         # download image
@@ -55,7 +55,7 @@ def download_sentences():
         category, img_file_name = os.path.split(img_src)
 
         # make category directories
-        output_dir = os.path.join(DATASET_DIR, 'sentences')
+        output_dir = os.path.join(DATASET_DIR, 'Sentences')
         os.makedirs(output_dir, exist_ok=True)
 
         # dowonload sentences
