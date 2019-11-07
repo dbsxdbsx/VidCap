@@ -34,7 +34,8 @@ class Flickr30k(VisionDataset):
         self.categories = self.load_categories()
 
         # load the samples and labels at once
-        self.sample_ids, self.boxes, self.captions, self.image_sizes = self._load_dataset()
+        self.sample, self.boxes, self.captions, self.image_sizes = self._load_dataset()
+        self.sample_ids = sorted(list(self.sample.keys()))
 
         print()
 
