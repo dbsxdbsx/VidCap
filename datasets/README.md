@@ -4,15 +4,15 @@
 Consists of 1000 images from [PascalVOC](http://host.robots.ox.ac.uk/pascal/VOC/voc2012/index.html#devkit) with five 
 captions per image. The dataset is presented [here](http://vision.cs.uiuc.edu/pascal-sentences/).
 
-To **download** the dataset run `get_voc_sent_dataset.py` from the root dir:
+To **download** the dataset run `get_voc_dataset.sh` from the root dir:
 ```
-VidCap$ python datasets/get_voc_sent_dataset.py
+VidCap$ python datasets/get_voc_dataset.sh
 ```
 
-The script will download the images and sentences into:
+The script will download the [PascalVOC](http://host.robots.ox.ac.uk/pascal/VOC/voc2012/index.html#devkit) dataset and 
+put the sentences into:
 ```
-datasets/PascalVOCSent/Images
-datasets/PascalVOCSent/Sentences
+datasets/PascalVOC/VOCdevkit/Sentences
 ```
 
 ### Flickr 30k

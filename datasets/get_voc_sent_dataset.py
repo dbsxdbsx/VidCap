@@ -11,7 +11,6 @@ from tqdm import tqdm
 from urllib.parse import urljoin
 
 
-DATASET_DIR = os.path.join('datasets', 'PascalVOCSent')
 DATASET_URL = 'http://vision.cs.uiuc.edu/pascal-sentences/'
 
 
@@ -23,7 +22,7 @@ def download_images():
         category, img_file_name = os.path.split(img_src)
 
         # make category directories
-        output_dir = os.path.join(DATASET_DIR, 'Images')
+        output_dir = 'Images'
         os.makedirs(output_dir, exist_ok=True)
 
         # download image
@@ -55,7 +54,7 @@ def download_sentences():
         category, img_file_name = os.path.split(img_src)
 
         # make category directories
-        output_dir = os.path.join(DATASET_DIR, 'Sentences')
+        output_dir = 'Sentences'
         os.makedirs(output_dir, exist_ok=True)
 
         # dowonload sentences
@@ -72,5 +71,5 @@ def download_sentences():
 
 if __name__ == "__main__":
 
-    download_images()
+    # download_images()
     download_sentences()
