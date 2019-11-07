@@ -17,14 +17,14 @@ class COCO(VisionDataset):
 
     def __init__(self, root=os.path.join('datasets', 'MSCoco'),
                  splits=('instances_train2017', 'captions_train2017'), transform=None, min_object_area=0,
-                 allow_empty=False, use_crowd=True, inference=False):
+                 allow_empty=True, use_crowd=True, inference=False):
         """
         Args:
             root (str): root file path of the dataset (default is 'datasets/MSCoco')
             splits (list): a list of splits as strings (default is ['instances_train2017'])
             transform: the transform to apply to the image/video and label (default is None)
             min_object_area (int): minimum accepted ground-truth area of box, if smaller ignored (default is 0)
-            allow_empty (bool): include samples that don't have any labelled boxes? (default is False)
+            allow_empty (bool): include samples that don't have any labelled boxes? (default is True)
             use_crowd (bool): use boxes labeled as crowd instance? (default is True)
             inference (bool): are we doing inference? (default is False)
         """
@@ -44,6 +44,9 @@ class COCO(VisionDataset):
         # load the samples and labels at once
         self.sample_ids, self.samples, self.boxes, self.captions = self._load_jsons()
 
+        self.categories = self.load_categories()
+        self.wn_categories = self.load_wn_categories()
+
     def __str__(self):
         return '\n\n' + self.__class__.__name__ + '\n'
 
@@ -58,10 +61,10 @@ class COCO(VisionDataset):
                 Please use single JSON dataset and evaluate one by one".format(len(self._coco)))
         return self._coco[0]
 
-    @property
-    def classes(self):
+    @staticmethod
+    def load_categories():
         """
-        Gets a list of class names as specified in the coco.names file
+        Gets a list of category names as specified in the coco.names file
 
         Returns:
             list : a list of strings
@@ -69,14 +72,14 @@ class COCO(VisionDataset):
         """
         names_file = os.path.join('./datasets/names/coco.names')
         with open(names_file, 'r') as f:
-            classes = [line.strip() for line in f.readlines()]
+            categories = [line.strip() for line in f.readlines()]
 
-        return classes
+        return categories
 
     @property
-    def wn_classes(self):
+    def load_wn_categories(self):
         """
-        Gets a list of class names as specified in the coco_wn.names file
+        Gets a list of category names as specified in the coco_wn.names file
 
         Returns:
             list : a list of strings
@@ -84,8 +87,8 @@ class COCO(VisionDataset):
         """
         names_file = os.path.join('./datasets/names/coco_wn.names')
         with open(names_file, 'r') as f:
-            wn_classes = [line.strip() for line in f.readlines()]
-        return wn_classes
+            wn_categories = [line.strip() for line in f.readlines()]
+        return wn_categories
 
     @property
     def annotation_dir(self):
@@ -167,10 +170,10 @@ class COCO(VisionDataset):
             _coco_cap = COCO(anno)
             self._coco.append(_coco_cap)
 
-            classes = [c['name'] for c in _coco.loadCats(_coco.getCatIds())]
-            if not classes == self.classes:
+            categories = [c['name'] for c in _coco.loadCats(_coco.getCatIds())]
+            if not categories == self.categories:
                 raise ValueError("Incompatible category names with COCO: ")
-            assert classes == self.classes
+            assert categories == self.categories
             json_id_to_contiguous = {
                 v: k for k, v in enumerate(_coco.getCatIds())}
             if self.json_id_to_contiguous is None:

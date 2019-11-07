@@ -46,11 +46,11 @@ def get_stats(dataset, top=40, style='print'):
         if style == "latex":
             if c % 2 == 0:
                 output_str += "\\rowcolor{lightGrey}\n"
-            output_str += "%s & %s \\\\\n" % (dataset.classes[value], key)
+            output_str += "%s & %s \\\\\n" % (dataset.categories[value], key)
         elif style == "csv":
-            output_str += "%s\t%s\n" % (dataset.classes[value], key)
+            output_str += "%s\t%s\n" % (dataset.categories[value], key)
         else:
-            output_str += "%s: %s\n" % (dataset.classes[value], key)
+            output_str += "%s: %s\n" % (dataset.categories[value], key)
 
     if dataset.captions:
         sents_p_img, words_p_img, vocab_p_img, imgs_with_word, caps_with_word, word_freqs, vocab_size = \
@@ -246,13 +246,13 @@ def box_counts(dataset):
     :return: # boxes per class, # boxes per image, # samples per class
     """
 
-    boxes_p_cls = [0] * len(dataset.classes)
-    samples_p_cls = [0] * len(dataset.classes)
+    boxes_p_cls = [0] * len(dataset.categories)
+    samples_p_cls = [0] * len(dataset.categories)
     boxes_p_img = []
     for sample_id in tqdm(dataset.sample_ids, desc="Processing Statistics for Box Data"):
         boxes_this_img = 0
         boxes = dataset.sample_boxes(sample_id)
-        samples_p_cls_flag = [0] * len(dataset.classes)
+        samples_p_cls_flag = [0] * len(dataset.categories)
         for box in boxes:
             boxes_p_cls[int(box[4])] += 1
             boxes_this_img += 1
@@ -433,7 +433,7 @@ def get_noun_coverage_str(dataset, boxes_p_cls, noun_freqs, nouns_p_img, top, st
 def obj_noun_overlaps(dataset, boxes_p_cls, noun_freqs, use_synonyms=False):
     overlaps = {}
     for cls_idx, count in enumerate(boxes_p_cls):
-        obj_name = dataset.classes[cls_idx]
+        obj_name = dataset.categories[cls_idx]
         exact_count = 0
         total_count = 0
 
