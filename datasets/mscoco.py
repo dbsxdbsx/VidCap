@@ -199,9 +199,8 @@ class COCO(VisionDataset):
                 assert self.json_id_to_contiguous == json_id_to_contiguous
 
             # iterate through the annotations
-            image_ids = sorted(_coco.getImgIds())
-            for sid, entry in zip(image_ids, _coco.loadImgs(image_ids)):
-
+            for sid, entry in zip(sorted(_coco.getImgIds()), _coco.loadImgs(sorted(_coco.getImgIds()))):
+                image_ids.append(sid)
                 abs_path = self._parse_image_path(entry)
                 if not os.path.exists(abs_path):
                     raise IOError('Image: {} not exists.'.format(abs_path))
