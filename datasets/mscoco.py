@@ -45,7 +45,7 @@ class COCO(VisionDataset):
         self.sample_ids, self.samples, self.boxes, self.captions = self._load_jsons()
 
     def __str__(self):
-        return '\n\n' + self.__class__.__name__ + '\n' + self.stats()[0] + '\n'
+        return '\n\n' + self.__class__.__name__ + '\n'
 
     @property
     def coco(self):
