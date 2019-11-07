@@ -164,14 +164,10 @@ class Flickr30k(VisionDataset):
 
         return out_str
 
-    @staticmethod
-    def obj_nouns():  # todo put elsewhere
-        # all nouns of occurence of 2 or more samples
-        return dict()
-
 
 if __name__ == '__main__':
     train_dataset = Flickr30k(splits=['train'])
+
     print(train_dataset.stats())
 
     # for s in tqdm(train_dataset, desc='Test Pass of Training Set'):

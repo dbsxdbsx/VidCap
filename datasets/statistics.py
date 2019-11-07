@@ -439,8 +439,8 @@ def obj_noun_overlaps(dataset, boxes_p_cls, noun_freqs, use_synonyms=False):
 
         synonym_counts = {}
         # make sure has syns, if doesn't go the else and just do the noun
-        if use_synonyms and obj_name in dataset.obj_nouns().keys():
-            for noun in dataset.obj_nouns()[obj_name]:
+        if use_synonyms and obj_name in dataset.category_synonyms().keys():
+            for noun in dataset.category_synonyms()[obj_name]:
                 if noun in noun_freqs.keys():
                     if noun == obj_name:
                         exact_count = noun_freqs[obj_name]
@@ -459,7 +459,7 @@ def obj_noun_overlaps(dataset, boxes_p_cls, noun_freqs, use_synonyms=False):
 
 def get_missing_noun_str(dataset, noun_freqs, top, style):
     groundings = []
-    for v in dataset.obj_nouns().values():
+    for v in dataset.category_synonyms().values():
         groundings += v
 
     output_str = "\n\n\nMissing Nouns:\n"

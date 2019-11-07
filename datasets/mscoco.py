@@ -41,11 +41,11 @@ class COCO(VisionDataset):
         self.contiguous_id_to_json = None
         self._coco = []
 
-        # load the samples and labels at once
-        self.sample_ids, self.samples, self.boxes, self.captions = self._load_jsons()
-
         self.categories = self.load_categories()
         self.wn_categories = self.load_wn_categories()
+
+        # load the samples and labels at once
+        self.sample_ids, self.samples, self.boxes, self.captions = self._load_jsons()
 
     def __str__(self):
         return '\n\n' + self.__class__.__name__ + '\n'
@@ -70,14 +70,14 @@ class COCO(VisionDataset):
             list : a list of strings
 
         """
-        names_file = os.path.join('./datasets/names/coco.names')
+        names_file = os.path.join('datasets', 'names', 'coco.names')
         with open(names_file, 'r') as f:
             categories = [line.strip() for line in f.readlines()]
 
         return categories
 
-    @property
-    def load_wn_categories(self):
+    @staticmethod
+    def load_wn_categories():
         """
         Gets a list of category names as specified in the coco_wn.names file
 
@@ -85,10 +85,25 @@ class COCO(VisionDataset):
             list : a list of strings
 
         """
-        names_file = os.path.join('./datasets/names/coco_wn.names')
+        names_file = os.path.join('datasets', 'names', 'coco_wn.names')
         with open(names_file, 'r') as f:
             wn_categories = [line.strip() for line in f.readlines()]
         return wn_categories
+
+    def category_synonyms(self):
+        """
+        Get a dict of hand-chosen synonyms for each category, handpicked from the common caption words
+
+        :return: dict keyed with categories containing list of synonyms
+        """
+        synonyms_file = os.path.join('datasets', 'names', 'coco.synonyms')
+        with open(synonyms_file, 'r') as f:
+            synonyms_ = [line.strip().split(',') for line in f.readlines()]
+        synonyms = dict()
+        for syns in synonyms_:
+            assert syns[0] in self.categories
+            synonyms[syns[0]] = syns[1:]
+        return synonyms
 
     @property
     def annotation_dir(self):
@@ -258,103 +273,9 @@ class COCO(VisionDataset):
 
         return out_str
 
-    @staticmethod
-    def obj_nouns():  # todo put elsewhere
-        # all nouns of occurence of 2 or more samples
-        return {'person': ['person', 'man', 'woman', 'people', 'boy', 'girl', 'child', 'men', 'women', 'lady', 'guy',
-                           'guys', 'male', 'passenger', 'passengers', 'baby', 'rider', 'boys', 'girls', 'children',
-                           'someone', 'mother', 'adult', 'toddler', 'kid', 'kids', 'persons', 'surfer', 'skier',
-                           'snowboarder', 'catcher', 'pitcher'],
-                'bicycle': ['bicycle', 'bike', 'bikes', 'pushbike'],
-                'car': ['car', 'cars', 'van'],
-                'motorcycle': ['motorcycle', 'motorcycles'],
-                'airplane': ['airplane', 'plane', 'planes', 'jet'],
-                'bus': ['bus', 'buses'],
-                'train': ['train', 'trains'],
-                'truck': ['truck', 'trucks'],
-                'boat': ['boat'],
-                'traffic light': ['traffic light', 'light', 'lights'],
-                'fire hydrant': ['fire hydrant', 'hydrant'],
-                'stop sign': ['stop sign', 'sign', 'signs'],
-                'parking meter': ['parking meter'],
-                'bench': ['bench', 'benches'],
-                'bird': ['bird', 'birds', 'chicken'],
-                'cat': ['cat', 'cats'],
-                'dog': ['dog', 'dogs'],
-                'horse': ['horse', 'horses'],
-                'sheep': ['sheep'],
-                'cow': ['cow', 'cows', 'cattle'],
-                'elephant': ['elephant', 'elephants'],
-                'bear': ['bear', 'bears'],
-                'zebra': ['zebra', 'zebras'],
-                'giraffe': ['giraffe', 'giraffes'],
-                'backpack': ['backpack'],
-                'umbrella': ['umbrella', 'umbrellas'],
-                'handbag': ['handbag'],
-                'tie': ['tie'],
-                'suitcase': ['suitcase'],
-                'frisbee': ['frisbee'],
-                'skis': ['skis'],
-                'snowboard': ['snowboard'],
-                'sports ball': ['sports ball', 'ball'],
-                'kite': ['kite', 'kites'],
-                'baseball bat': ['baseball bat', 'bat'],
-                'baseball glove': ['baseball glove', 'glove'],
-                'skateboard': ['skateboard', 'skateboards'],
-                'surfboard': ['surfboard', 'surfboards'],
-                'tennis racket': ['tennis racket', 'racket', 'racquet'],
-                'bottle': ['bottle', 'bottles'],
-                'wine glass': ['wine glass', 'glass'],
-                'cup': ['cup', 'cups'],
-                'fork': ['fork'],
-                'knife': ['knife'],
-                'spoon': ['spoon'],
-                'bowl': ['bowl', 'bowls'],
-                'banana': ['banana', 'bananas'],
-                'apple': ['apple', 'apples'],
-                'sandwich': ['sandwich'],
-                'orange': ['orange', 'oranges'],
-                'broccoli': ['broccoli'],
-                'carrot': ['carrot', 'carrots'],
-                'hot dog': ['hot dog'],
-                'pizza': ['pizza', 'pizzas'],
-                'donut': ['donut', 'donuts', 'doughnut', 'doughnuts'],
-                'cake': ['cake', 'cakes'],
-                'chair': ['chair', 'chairs'],
-                'couch': ['couch', 'couches', 'sofa'],
-                'potted plant': ['potted plant', 'potplant', 'plant', 'plants', 'pot'],
-                'bed': ['bed'],
-                'dining table': ['dining table', 'table', 'tables'],
-                'toilet': ['toilet', 'loo'],
-                'tv': ['tv', 'tvmonitor', 'television', 'monitor', 'monitors', 'display', 'screen'],
-                'laptop': ['laptop', 'computer', 'computers'],
-                'mouse': ['mouse'],
-                'remote': ['remote'],
-                'keyboard': ['keyboard'],
-                'cell phone': ['cell phone', 'phone'],
-                'microwave': ['microwave'],
-                'oven': ['oven'],
-                'toaster': ['toaster'],
-                'sink': ['sink'],
-                'refrigerator': ['refrigerator', 'fridge'],
-                'book': ['book', 'books'],
-                'clock': ['clock'],
-                'vase': ['vase'],
-                'scissors': ['scissors'],
-                'teddy bear': ['teddy bear', 'teddy'],
-                'hair drier': ['hair drier'],
-                'toothbrush': ['toothbrush']
-                }
-
 
 if __name__ == '__main__':
-    train_dataset = COCO(splits=['instances_train2017'], use_crowd=False)
+    train_dataset = COCO(splits=['instances_train2017', 'instances_val2017'])
+
     print(train_dataset.stats())
 
-    # for s in tqdm(train_dataset, desc='Test Pass of Training Set'):
-    #     pass
-    # print(train_dataset)
-    # val_dataset = COCO(splits=['instances_val2017'], allow_empty=True)
-    # for s in tqdm(val_dataset, desc='Test Pass of Validation Set'):
-    #     pass
-    # print(val_dataset)
