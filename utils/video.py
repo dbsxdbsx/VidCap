@@ -6,8 +6,8 @@ import cv2
 import glob
 import multiprocessing
 import os
+import subprocess
 import sys
-from subprocess import call
 from tqdm import tqdm
 
 
@@ -211,16 +211,17 @@ def download_youtube(save_dir, v_id):
     # check if it exists first
     for ext in extensions:
         if os.path.exists(os.path.join(save_dir, v_id + ext)):
-            return v_id + ext
+            return ''
 
-    # download it, import for ensuring it's downloaded but we call from shell
-    call(["youtube-dl -o '" + os.path.join(save_dir, v_id + ".mp4") + "' 'http://youtu.be/" + v_id + "'" +
-          " --quiet --no-warnings --ignore-errors "], shell=True)
+    os.makedirs(save_dir, exist_ok=True)
+    subprocess.run(["youtube-dl -o '" + os.path.join(save_dir, v_id + ".mp4") + "' 'http://youtu.be/" + v_id + "'"
+                    + " --quiet --no-warnings --ignore-errors "], shell=True,
+                   stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     # check we have downloaded it
     for ext in extensions:
         if os.path.exists(os.path.join(save_dir, v_id + ext)):
-            return v_id + ext
+            return ''
 
     # if didn't work will return None
-    return None
+    return v_id

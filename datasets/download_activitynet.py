@@ -42,8 +42,7 @@ def download_activitynet():
 
     each_vid_size_approx_gb = .029620394  # i have guestimated this
     expected_size = each_vid_size_approx_gb * len(ids)
-    print("\n\nYou have set keep_vids=True ..."
-          "\nBe warned that this will try to download {} videos with an approximate size of {} GBs."
+    print("\nBe warned that this will try to download {} videos with an approximate size of {} GBs."
           " This could take weeks or even months depending on your download speeds."
           "\n\nContinue? (y/n)".format(len(ids), int(expected_size)))
 
@@ -58,13 +57,13 @@ def download_activitynet():
     errors = set()
     with ProcessPoolExecutor(max_workers=multiprocessing.cpu_count()) as executor:
 
-        futures = [executor.submit(download_youtube, videos_dir, v_id) for v_id in ids]
+        futures = [executor.submit(download_youtube, os.path.join(videos_dir, v_id[0]), v_id) for v_id in ids]
 
         for i, f in enumerate(as_completed(futures)):
             print_progress(i, len(ids), prefix="Downloading Videos:", suffix='Complete', decimals=5)
             result = f.result()
-            if result[0] < 1:
-                errors.add(result[1])
+            if len(result) > 0:
+                errors.add(result)
 
         print("Successfully processed {} / {} videos".format(len(ids) - len(errors), len(ids)))
 
