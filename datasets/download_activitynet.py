@@ -65,10 +65,10 @@ def download_activitynet():
             if len(result) > 0:
                 errors.add(result)
 
-        print("Successfully processed {} / {} videos".format(len(ids) - len(errors), len(ids)))
+        print("\n\nSuccessfully processed {} / {} videos".format(len(ids) - len(errors), len(ids)))
 
     if len(errors) > 0:
-        print("Saving Error file: {}".format(os.path.join(dataset_path, "frame_get_errors.txt")))
+        print("\nSaving Error file: {}".format(os.path.join(dataset_path, "frame_get_errors.txt")))
         with open(os.path.join(dataset_path, "frame_get_errors.txt"), "a") as f:
             for v_id in errors:
                 f.write(v_id + "\n")
