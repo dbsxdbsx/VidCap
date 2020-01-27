@@ -32,7 +32,7 @@ def print_progress(iteration, total, prefix='', suffix='', decimals=3, bar_lengt
     sys.stdout.flush()  # flush to stdout
 
 
-def extract_frames(video_path, frames_dir, overwrite=False, start=-1, end=-1, every=1):
+def extract_frames(video_path, frames_dir=None, overwrite=False, start=-1, end=-1, every=1):
     """
     Extract frames from a video using OpenCVs VideoCapture
 
@@ -46,7 +46,8 @@ def extract_frames(video_path, frames_dir, overwrite=False, start=-1, end=-1, ev
     """
 
     video_path = os.path.normpath(video_path)  # make the paths OS (Windows) compatible
-    frames_dir = os.path.normpath(frames_dir)  # make the paths OS (Windows) compatible
+    if frames_dir is not None:
+        frames_dir = os.path.normpath(frames_dir)  # make the paths OS (Windows) compatible
 
     video_dir, video_filename = os.path.split(video_path)  # get the video path and filename from the path
 
@@ -64,11 +65,12 @@ def extract_frames(video_path, frames_dir, overwrite=False, start=-1, end=-1, ev
     while_safety = 0  # a safety counter to ensure we don't enter an infinite while loop (hopefully we won't need it)
     saved_count = 0  # a count of how many frames we have saved
 
+    out_frames = list()
     while frame < end:  # lets loop through the frames until the end
 
         ret, image = capture.read()  # read an image from the capture
 
-        if while_safety > 500:  # break the while if our safety maxs out at 500
+        if while_safety > 10:  # break the while if our safety maxs out at 500
             break
 
         # sometimes OpenCV reads None's during a video, in which case we want to just skip
@@ -78,17 +80,21 @@ def extract_frames(video_path, frames_dir, overwrite=False, start=-1, end=-1, ev
 
         if frame % every == 0:  # if this is a frame we want to write out based on the 'every' argument
             while_safety = 0  # reset the safety count
-            # save in start of chunk subdirectory in video name subdirectory
-            save_path = os.path.join(frames_dir, video_filename, "{:010d}".format(start), "{:010d}.jpg".format(frame))
-            if not os.path.exists(save_path) or overwrite:  # if it doesn't exist or we want to overwrite anyways
-                cv2.imwrite(save_path, image)  # save the extracted image
-                saved_count += 1  # increment our counter by one
-
+            if frames_dir is not None:
+                # save in start of chunk subdirectory in video name subdirectory
+                save_path = os.path.join(frames_dir, video_filename, "{:010d}".format(start), "{:010d}.jpg".format(frame))
+                if not os.path.exists(save_path) or overwrite:  # if it doesn't exist or we want to overwrite anyways
+                    cv2.imwrite(save_path, image)  # save the extracted image
+                    saved_count += 1  # increment our counter by one
+            else:
+                out_frames.append(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
         frame += 1  # increment our frame count
 
     capture.release()  # after the while has finished close the capture
-
-    return saved_count  # and return the count of the images we saved
+    if frames_dir is not None:
+        return saved_count  # and return the count of the images we saved
+    else:
+        return out_frames
 
 
 def video_to_frames(video_path, frames_dir, stats_dir=None, overwrite=False, every=1, chunk_size=1000):
