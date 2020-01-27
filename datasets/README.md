@@ -45,5 +45,28 @@ VidCap$ . datasets/get_flickr30k_entities.sh
 ### MS Coco
 To **download** the dataset run `get_coco_dataset.sh` from the root dir:
 ```
-VidCap$ . datasets/get_coco_dataset.py
+VidCap$ . datasets/get_coco_dataset.sh
 ```
+
+### ActivityNet
+To **download** the dataset run `get_activitynet_dataset.sh` from the root dir:
+```
+VidCap$ . datasets/get_activitynet_dataset.sh
+```
+This script will also attempt to download the videos from YouTube, note this can take a very long time and also that not
+ all videos are still on YouTube. To get the full dataset you can fill out [**this form**](https://docs.google.com/forms/d/e/1FAIpQLSeKaFq9ZfcmZ7W0B0PbEhfbTHY41GeEgwsa7WobJgGUhn4DTQ/viewform).
+ 
+ ##  MSVD
+Manually download the dataset from [dropbox](https://www.dropbox.com/sh/4ecwl7zdha60xqo/AAC_TAsR7SkEYhkSdAFKcBlMa?dl=0)
+ and save in a `MSVD` directory as `naacl15_translating_videos_processed_data.zip`:
+```
+datasets/MSVD/naacl15_translating_videos_processed_data.zip
+```
+Then run the `get_msvd_dataset.sh` from the root dir:
+```
+VidCap$ . datasets/get_msvd_dataset.sh
+```
+
+ ## MSR-VTT
+ 
+ Coming Soon
