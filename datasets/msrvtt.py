@@ -1,5 +1,6 @@
-"""MSVD Dataset"""
+"""MSRVTT Dataset"""
 
+import json
 import mxnet as mx
 import os
 
@@ -8,13 +9,13 @@ from gluoncv.data.base import VisionDataset
 from datasets.statistics import get_stats
 from utils.video import extract_frames
 
-__all__ = ['MSVD']
+__all__ = ['MSRVTT']
 
 
-class MSVD(VisionDataset):
-    """MSVD dataset."""
+class MSRVTT(VisionDataset):
+    """MSRVTT dataset."""
 
-    def __init__(self, root=os.path.join('datasets', 'MSVD'),
+    def __init__(self, root=os.path.join('datasets', 'MSRVTT'),
                  splits=['train'], transform=None, inference=False, every=25):
         """
         Args:
@@ -23,7 +24,7 @@ class MSVD(VisionDataset):
             transform: the transform to apply to the image/video and label (default is None)
             inference (bool): are we doing inference? (default is False)
         """
-        super(MSVD, self).__init__(root)
+        super(MSRVTT, self).__init__(root)
         self.root = os.path.expanduser(root)
         self._transform = transform
         self._inference = inference
@@ -53,7 +54,7 @@ class MSVD(VisionDataset):
             int: idx (if inference=True)
         """
         sid = self.sample_ids[ind]
-        vid_path = self.video_path(sid)
+        vid_path = self.video_path(vid_id)
         cap = self.samples[sid]['cap']
 
         imgs = extract_frames(vid_path, frames_dir=None, overwrite=False, start=-1, end=-1, every=self._every)
@@ -70,10 +71,7 @@ class MSVD(VisionDataset):
 
     def sample_path(self, sid):
         vid_id = self.samples[sid]['vid']
-        return os.path.join(self.root, 'videos', self.mappings[vid_id] + '.avi')
-
-    def video_captions(self, vid_id):
-        return self.captions[vid_id]
+        return NotImplementedError
 
     def _load_samples(self):
         """Load the samples"""
@@ -81,30 +79,32 @@ class MSVD(VisionDataset):
         captions = dict()
         mappings = dict()
 
-        # get the vid_id to youtube_id mappings
-        with open(os.path.join(self.root, 'youtube_video_to_id_mapping.txt'), 'r') as f:
-            lines = f.readlines()
-        lines = [line.rstrip().split() for line in lines]
+        # load the json
+        with open(os.path.join(self.root, 'videodatainfo_2017.json'), 'r') as f:
+            data = json.load(f)
 
-        for yt_id, vid_id in lines:
-            mappings[vid_id] = yt_id
+        # extract the video data
+        vid_id_to_samp_id = dict()
+        for vid in data['videos']:
+            if vid['split'] in self._splits:
+                vid_id_to_samp_id[vid['video_id']] = len(samples.keys())
+                samples[len(samples.keys())] = {'vid': vid['video_id'], 'url': vid['url'],
+                                                'st': vid['start time'], 'et': vid['end time'],
+                                                'cap': list()}
+                captions[vid['video_id']] = list()
+                mappings[vid['video_id']] = vid['url']
 
-        mappings_split = dict()
-        for split in self._splits:
-            with open(os.path.join(self.root, 'sents_'+split+'_lc_nopunc.txt'), 'r') as f:
-                lines = f.readlines()
-            lines = [line.rstrip().split('\t') for line in lines]
+        # extract the caption data
+        for sent in data['sentences']:
+            if sent['video_id'] in vid_id_to_samp_id.keys():
+                sid = vid_id_to_samp_id[sent['video_id']]
+                samples[sid]['cap'].append(sent['caption'])
+                captions[sent['video_id']].append(sent['caption'])
 
-            for vid_id, caption in lines:
-                if vid_id in captions.keys():
-                    captions[vid_id].append(caption)
-                else:
-                    captions[vid_id] = [caption]
+        return samples, captions, mappings
 
-                samples[len(samples.keys())] = {'vid': vid_id, 'cap': caption}  # each individual caption is a sample
-                mappings_split[vid_id] = mappings[vid_id]
-
-        return samples, captions, mappings_split
+    def video_captions(self, vid_id):
+        return self.captions[vid_id]
 
     def image_captions(self, vid_id):
         return self.video_captions(vid_id)
@@ -130,7 +130,7 @@ class MSVD(VisionDataset):
 
 
 if __name__ == '__main__':
-    train_dataset = MSVD(splits=['train'])
+    train_dataset = MSRVTT(splits=['train'])
 
     print(train_dataset.stats())
 

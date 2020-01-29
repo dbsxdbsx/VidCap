@@ -17,7 +17,7 @@ class COCO(VisionDataset):
 
     def __init__(self, root=os.path.join('datasets', 'MSCoco'),
                  splits=('instances_train2017', 'captions_train2017'), transform=None, min_object_area=0,
-                 allow_empty=True, use_crowd=True, inference=False):
+                 allow_empty=True, use_crowd=True, inference=False, label='boxes'):
         """
         Args:
             root (str): root file path of the dataset (default is 'datasets/MSCoco')
@@ -36,6 +36,7 @@ class COCO(VisionDataset):
         self._use_crowd = use_crowd
         self._inference = inference
         self._splits = splits
+        self._label = label
                 
         self.json_id_to_contiguous = None
         self.contiguous_id_to_json = None
@@ -45,7 +46,22 @@ class COCO(VisionDataset):
         self.wn_categories = self.load_wn_categories()
 
         # load the samples and labels at once
-        self.sample_ids, self.samples, self.boxes, self.captions = self._load_jsons()
+        self.images, self.boxes, self.captions = self._load_jsons()
+
+        self.samples = dict()
+        for img_id in self.images.keys():
+            if label == 'boxes':
+                self.samples[len(self.samples.keys())] = {'img': img_id,
+                                                          'boxs': self.boxes[img_id],
+                                                          'caps': self.captions[img_id]}
+            else:
+                for cap in self.captions[img_id]:
+                    self.samples[len(self.samples.keys())] = {'img': img_id,
+                                                              'boxs': self.boxes[img_id],
+                                                              'cap': cap}
+        self.sample_ids = sorted(list(self.samples.keys()))
+
+        print()
 
     def __str__(self):
         return '\n\n' + self.__class__.__name__ + '\n'
@@ -127,7 +143,7 @@ class COCO(VisionDataset):
 
         """
         dirname, filename = entry['coco_url'].split('/')[-2:]
-        abs_path = os.path.join(self.root, dirname, filename)
+        abs_path = os.path.join(self.root, 'images', dirname, filename)
         return abs_path
 
     def __len__(self):
@@ -157,19 +173,22 @@ class COCO(VisionDataset):
         else:
             return img, label
 
-    def sample_path(self, sind):
-        return self.samples[sind]
+    def sample_path(self, smp_id):
+        img_id = self.samples[smp_id]['img']
+        return self.images[img_id]
 
-    def sample_captions(self, sid):
-        return self.captions[sid]
+    def image_captions(self, img_id):
+        return self.captions[img_id]
 
-    def sample_boxes(self, sid):
-        return self.boxes[sid]
+    def image_boxes(self, img_id):
+        return self.boxes[img_id]
+
+    def image_ids(self):
+        return self.images.keys()
 
     def _load_jsons(self):
         """Load all image paths and labels from JSON annotation files into buffer."""
-        image_ids = list()
-        samples = dict()
+        images = dict()
         boxes = dict()
         captions = dict()
 
@@ -199,21 +218,20 @@ class COCO(VisionDataset):
                 assert self.json_id_to_contiguous == json_id_to_contiguous
 
             # iterate through the annotations
-            for sid, entry in zip(sorted(_coco.getImgIds()), _coco.loadImgs(sorted(_coco.getImgIds()))):
-                image_ids.append(sid)
+            for img_id, entry in zip(sorted(_coco.getImgIds()), _coco.loadImgs(sorted(_coco.getImgIds()))):
                 abs_path = self._parse_image_path(entry)
                 if not os.path.exists(abs_path):
                     raise IOError('Image: {} not exists.'.format(abs_path))
                 box = self._check_load_bbox(_coco, entry)
                 caption = self._load_captions(_coco_cap, entry)
                 if not box and not caption:
-                    print("%s doesn't have any boxes or captions" % sid)
+                    print("%s doesn't have any boxes or captions" % img_id)
                     continue
-                samples[sid] = abs_path
-                boxes[sid] = box
-                captions[sid] = caption
+                images[img_id] = abs_path
+                boxes[img_id] = box
+                captions[img_id] = caption
 
-        return image_ids, samples, boxes, captions
+        return images, boxes, captions
 
     @staticmethod
     def _load_captions(coco, entry):

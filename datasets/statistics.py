@@ -13,46 +13,48 @@ def get_stats(dataset, top=40, style='print'):
     :return: a string of the stats
     """
     assert style in ['print', 'latex', 'csv']
-
+    output_str = ""
+    boxes_p_cls = None
     # get the stats to print
-    boxes_p_cls, boxes_p_img, samples_p_cls = box_counts(dataset)
+    if hasattr(dataset, 'categories'):
+        boxes_p_cls, boxes_p_img, samples_p_cls = box_counts(dataset)
 
-    if len(boxes_p_cls) == 0:
-        output_str = "# Images: %d\n" \
-              "# Boxes: %d\n" \
-              "# Categories: %d\n" % \
-              (len(dataset.sample_ids), 0, 0)
-    else:
-        output_str = "# Images: %d\n" \
-              "# Boxes: %d\n" \
-              "# Categories: %d\n" \
-              "Boxes per image (min, avg, max): %d, %d, %d\n" \
-              "Boxes per category (min, avg, max): %d, %d, %d\n\n\n" % \
-              (len(dataset.sample_ids), sum(boxes_p_img), len(boxes_p_cls),
-               min(boxes_p_img), sum(boxes_p_img) / len(boxes_p_img), max(boxes_p_img),
-               min(boxes_p_cls), sum(boxes_p_cls) / len(boxes_p_cls), max(boxes_p_cls))
-
-    boxes_p_cls_dict = {}
-    for i in range(len(boxes_p_cls)):
-        boxes_p_cls_dict[i] = boxes_p_cls[i]
-
-    output_str += "Object Counts:\n"
-    c = 0
-    for key, value in sorted(((value, key) for (key, value) in boxes_p_cls_dict.items()), reverse=True):
-        c += 1
-        if c > top:
-            break
-
-        if style == "latex":
-            if c % 2 == 0:
-                output_str += "\\rowcolor{lightGrey}\n"
-            output_str += "%s & %s \\\\\n" % (dataset.categories[value], key)
-        elif style == "csv":
-            output_str += "%s\t%s\n" % (dataset.categories[value], key)
+        if len(boxes_p_cls) == 0:
+            output_str += "# Images: %d\n" \
+                  "# Boxes: %d\n" \
+                  "# Categories: %d\n" % \
+                  (len(dataset.img_ids), 0, 0)
         else:
-            output_str += "%s: %s\n" % (dataset.categories[value], key)
+            output_str += "# Images: %d\n" \
+                  "# Boxes: %d\n" \
+                  "# Categories: %d\n" \
+                  "Boxes per image (min, avg, max): %d, %d, %d\n" \
+                  "Boxes per category (min, avg, max): %d, %d, %d\n\n\n" % \
+                  (len(dataset.image_ids()), sum(boxes_p_img), len(boxes_p_cls),
+                   min(boxes_p_img), sum(boxes_p_img) / len(boxes_p_img), max(boxes_p_img),
+                   min(boxes_p_cls), sum(boxes_p_cls) / len(boxes_p_cls), max(boxes_p_cls))
 
-    if dataset.captions:
+        boxes_p_cls_dict = {}
+        for i in range(len(boxes_p_cls)):
+            boxes_p_cls_dict[i] = boxes_p_cls[i]
+
+        output_str += "Object Counts:\n"
+        c = 0
+        for key, value in sorted(((value, key) for (key, value) in boxes_p_cls_dict.items()), reverse=True):
+            c += 1
+            if c > top:
+                break
+
+            if style == "latex":
+                if c % 2 == 0:
+                    output_str += "\\rowcolor{lightGrey}\n"
+                output_str += "%s & %s \\\\\n" % (dataset.categories[value], key)
+            elif style == "csv":
+                output_str += "%s\t%s\n" % (dataset.categories[value], key)
+            else:
+                output_str += "%s: %s\n" % (dataset.categories[value], key)
+
+    if hasattr(dataset, 'captions'):
         sents_p_img, words_p_img, vocab_p_img, imgs_with_word, caps_with_word, word_freqs, vocab_size = \
             caption_counts(dataset)
 
@@ -231,9 +233,10 @@ def get_stats(dataset, top=40, style='print'):
             else:
                 output_str += "%s: %s\n" % (value, key)
 
-        output_str += get_noun_coverage_str(dataset, boxes_p_cls, word_freqs[1], words_p_img[1], top, style)
+        if boxes_p_cls is not None:
+            output_str += get_noun_coverage_str(dataset, boxes_p_cls, word_freqs[1], words_p_img[1], top, style)
 
-        output_str += get_missing_noun_str(dataset, word_freqs[1], top, style)
+            output_str += get_missing_noun_str(dataset, word_freqs[1], top, style)
 
     return output_str
 
@@ -249,9 +252,9 @@ def box_counts(dataset):
     boxes_p_cls = [0] * len(dataset.categories)
     samples_p_cls = [0] * len(dataset.categories)
     boxes_p_img = []
-    for sample_id in tqdm(dataset.sample_ids, desc="Processing Statistics for Box Data"):
+    for img_id in tqdm(dataset.image_ids(), desc="Processing Statistics for Box Data"):
         boxes_this_img = 0
-        boxes = dataset.sample_boxes(sample_id)
+        boxes = dataset.image_boxes(img_id)
         samples_p_cls_flag = [0] * len(dataset.categories)
         for box in boxes:
             boxes_p_cls[int(box[4])] += 1
@@ -280,11 +283,11 @@ def caption_counts(dataset):
     vocab_p_img = [[], [], []]  # words, nouns, verbs  # the vocab size per image
     word_freqs = [{}, {}, {}]  # words, nouns, verbs  # the total word appearance counts
 
-    for sample_id in tqdm(dataset.sample_ids, desc="Processing Statistics for Caption Data"):
+    for img_id in tqdm(dataset.image_ids(), desc="Processing Statistics for Caption Data"):
         words_this_img = []
         nouns_this_img = []
         verbs_this_img = []
-        captions = dataset.sample_captions(sample_id)
+        captions = dataset.image_captions(img_id)
 
         for cap in captions:
             done_words = []
@@ -458,6 +461,8 @@ def obj_noun_overlaps(dataset, boxes_p_cls, noun_freqs, use_synonyms=False):
 
 
 def get_missing_noun_str(dataset, noun_freqs, top, style):
+    if not hasattr(dataset, 'category_synonyms'):
+        return ''
     groundings = []
     for v in dataset.category_synonyms().values():
         groundings += v
