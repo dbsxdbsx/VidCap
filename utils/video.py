@@ -32,7 +32,7 @@ def print_progress(iteration, total, prefix='', suffix='', decimals=3, bar_lengt
     sys.stdout.flush()  # flush to stdout
 
 
-def extract_frames(video_path, frames_dir=None, overwrite=False, start=-1, end=-1, every=1):
+def extract_frames(video_path, frames_dir=None, overwrite=False, start=-1, end=-1, every=1, seconds=False):
     """
     Extract frames from a video using OpenCVs VideoCapture
 
@@ -54,6 +54,10 @@ def extract_frames(video_path, frames_dir=None, overwrite=False, start=-1, end=-
     assert os.path.exists(video_path)  # assert the video file exists
 
     capture = cv2.VideoCapture(video_path)  # open the video using OpenCV
+    ll = capture.get(cv2.CAP_PROP_FRAME_COUNT)
+    if seconds:
+        start = int(start*capture.get(cv2.CAP_PROP_FPS))
+        end = int(end*capture.get(cv2.CAP_PROP_FPS))
 
     if start < 0:  # if start isn't specified lets assume 0
         start = 0
