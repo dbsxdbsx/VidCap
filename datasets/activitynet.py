@@ -180,9 +180,9 @@ class ActivityNet(VisionDataset):
 
 
 if __name__ == '__main__':
-    train_dataset = ActivityNet(splits=['val'], label='events')
+    train_dataset = ActivityNet(splits=['train'], label='events')
 
-    # print(train_dataset.stats())
+    print(train_dataset.stats())
 
     for s in tqdm(train_dataset, desc='Test Pass of Training Set'):
         print(s)
