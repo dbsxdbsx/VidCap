@@ -54,7 +54,7 @@ class MSRVTT(VisionDataset):
             int: idx (if inference=True)
         """
         sid = self.sample_ids[ind]
-        vid_path = self.video_path(vid_id)
+        vid_path = self.video_path(sid)
         cap = self.samples[sid]['cap']
 
         imgs = extract_frames(vid_path, frames_dir=None, overwrite=False, start=-1, end=-1, every=self._every)
