@@ -1,4 +1,5 @@
 from tqdm import tqdm
+from nltk.corpus import wordnet as wn
 
 from utils.text import extract_nouns_verbs, parse
 
@@ -234,7 +235,8 @@ def get_stats(dataset, top=40, style='print'):
                 output_str += "%s: %s\n" % (value, key)
 
         if boxes_p_cls is not None:
-            output_str += get_noun_coverage_str(dataset, boxes_p_cls, word_freqs[1], words_p_img[1], top, style)
+            overlaps = obj_noun_overlaps(dataset, boxes_p_cls, noun_freqs=word_freqs[1])  # {obj: {count, nouns: {noun: count}}}
+            output_str += get_noun_coverage_str(overlaps, words_p_img[1], top, style)
 
             output_str += get_missing_noun_str(dataset, word_freqs[1], top, style)
 
@@ -371,65 +373,74 @@ def caption_counts(dataset):
     return sents_p_img, words_p_img, vocab_p_img, imgs_with_word, caps_with_word, word_freqs, vocab_size
 
 
-def get_noun_coverage_str(dataset, boxes_p_cls, noun_freqs, nouns_p_img, top, style):
-    overlaps = obj_noun_overlaps(dataset, boxes_p_cls, noun_freqs=noun_freqs)  # {obj: {count, nouns: {noun: count}}}
+def get_noun_coverage_str(overlaps, nouns_p_img, top, style, order=None):
 
     output_str = "\n\n\nNoun Coverage:\n"
     c = 0
     top_nouns = 5
-    tot_noun_occs = 0
-    tot_perc = 0
     tot_obj_name_noun_count = 0
-    for tot_count, obj_name in sorted(((value['total'], key) for (key, value) in overlaps.items()), reverse=True):
+    if order is None:
+        order = sorted(((len(value['total']), key) for (key, value) in overlaps.items()), reverse=True)
+        tree = False
+    else:
+        order = ((len(overlaps[k]['total']), k) for k in order)
+        tree = True
+
+    for tot_count, obj_name in order:
+        if obj_name == 'TOTAL':
+            continue
         c += 1
         if c > top:
             break
 
-        noun_str = ""
-        count_str = ""
-        perc_str = ""
+        syn_str = ""
         cc = 0
-        count_str_int = 0
-        for count, noun in sorted(((count, noun) for (noun, count) in overlaps[obj_name]['synonyms'].items()),
+        for count, noun in sorted(((len(count), noun) for (noun, count) in overlaps[obj_name]['synonyms'].items()),
                                   reverse=True):
-
             cc += 1
-            count_str_int += count
-
             if cc == len(overlaps[obj_name]['synonyms'].keys()) and cc <= top_nouns:
-                noun_str += "%s (%d)" % (noun, count)
+                syn_str += "%s (%d)" % (noun, count)
             elif cc < top_nouns:
-                noun_str += "%s (%d), " % (noun, count)
+                syn_str += "%s (%d), " % (noun, count)
             elif cc == top_nouns:
-                noun_str += "%s (%d), ... " % (noun, count)
+                syn_str += "%s (%d), ... " % (noun, count)
 
-        count_str += "%d" % count_str_int
-        perc_str += "%0.2f" % ((100 * tot_count) / float(sum(nouns_p_img)))
-        tot_noun_occs += count_str_int
-        tot_perc += ((100 * tot_count) / float(sum(nouns_p_img)))
+        count_str = "%d" % tot_count
+        perc_str = "%0.2f" % ((100 * tot_count) / float(sum(nouns_p_img)))
+
+        if tree:
+            child_count = len(overlaps[obj_name]['child_sum'])
+            syn_str = "%d" % child_count
+            child_perc_str = "%0.2f" % ((100 * child_count) / float(sum(nouns_p_img)))
 
         # handle the noun with the exact obj_name spelling
-        obj_name_noun_count = overlaps[obj_name]['exact']
+        obj_name_noun_count = len(overlaps[obj_name]['exact'])
         tot_obj_name_noun_count += obj_name_noun_count
 
         if style == "latex":
             if c % 2 == 0:
                 output_str += "\\rowcolor{lightGrey}\n"
             output_str += "\\textbf{%s} & %d & %s & %s & %s \\\\\n" % (
-                obj_name, obj_name_noun_count, noun_str, count_str, perc_str)
+                obj_name, obj_name_noun_count, syn_str, count_str, perc_str)
         elif style == "csv":
-            output_str += "%s\t%d\t%s\t%s\t%s\n" % (obj_name, obj_name_noun_count, noun_str, count_str, perc_str)
+            output_str += "%s\t%d\t%s\t%s\t%s\n" % (obj_name, obj_name_noun_count, syn_str, count_str, perc_str)
         else:
-            output_str += "%s: %d: %s: %s: %s\n" % (obj_name, obj_name_noun_count, noun_str, count_str, perc_str)
+            output_str += "%s: %d: %s: %s: %s\n" % (obj_name, obj_name_noun_count, syn_str, count_str, perc_str)
 
-    if style == "latex":
-        output_str += "\\rowcolor{grey8}\n"
-        output_str += "\\textbf{TOTALS} & \\textbf{%d} & & \\textbf{%d} & \\textbf{%0.2f} \\\\\n" % (
-            tot_obj_name_noun_count, tot_noun_occs, tot_perc)
-    elif style == "csv":
-        output_str += "TOTALS\t\t%d\t%d\t%0.2f\n" % (tot_obj_name_noun_count, tot_noun_occs, tot_perc)
-    else:
-        output_str += "TOTALS: : %d: %d: %0.2f\n" % (tot_obj_name_noun_count, tot_noun_occs, tot_perc)
+    # do totals
+    if not tree:
+        tot_obj_name_noun_count = len(overlaps['TOTAL']['exact'])
+        tot_noun_occs = len(overlaps['TOTAL']['total'])
+        tot_perc = (100 * tot_noun_occs) / float(sum(nouns_p_img))
+
+        if style == "latex":
+            output_str += "\\rowcolor{grey8}\n"
+            output_str += "\\textbf{TOTALS} & \\textbf{%d} & & \\textbf{%d} & \\textbf{%0.2f} \\\\\n" % (
+                tot_obj_name_noun_count, tot_noun_occs, tot_perc)
+        elif style == "csv":
+            output_str += "TOTALS\t\t%d\t%d\t%0.2f\n" % (tot_obj_name_noun_count, tot_noun_occs, tot_perc)
+        else:
+            output_str += "TOTALS: : %d: %d: %0.2f\n" % (tot_obj_name_noun_count, tot_noun_occs, tot_perc)
     return output_str
 
 
@@ -460,17 +471,134 @@ def obj_noun_overlaps(dataset, boxes_p_cls, noun_freqs, use_synonyms=False):
     return overlaps
 
 
-def get_missing_noun_str(dataset, noun_freqs, top, style):
-    if not hasattr(dataset, 'category_synonyms'):
-        return ''
-    groundings = []
-    for v in dataset.category_synonyms().values():
-        groundings += v
+def id_to_name(id):
+    return wn.synset_from_pos_and_offset('n', int(id[1:]))._name
+
+
+def load_nouns(dataset):
+    # load noun freqs for the captions
+    noun_freqs = dict()
+    for img_id in tqdm(dataset.image_ids(), desc="Load Noun Freqs"):
+        nouns_this_img = set()
+        captions = dataset.image_captions(img_id)
+
+        for cap in captions:
+            _, nouns, _ = extract_nouns_verbs(parse(cap))
+            for w in nouns:
+                if w not in nouns_this_img:
+                    nouns_this_img.add(w)
+                    if w in noun_freqs.keys():
+                        noun_freqs[w].add(img_id)
+                    else:
+                        noun_freqs[w] = set([img_id])
+    return noun_freqs
+
+
+def obj_noun_overlaps_from_file(names_file, noun_freqs, use_synonyms=False):
+
+    with open(names_file, 'r') as f:
+        lines = f.readlines()
+
+    classes = list()
+    if names_file.split('.')[-1] == 'tree':
+        children = dict()
+        for line in lines:
+            line = line.rstrip().split()
+            child = line[0]
+            parent = line[1]
+            child = id_to_name(child).split('.')[0].replace('_', ' ')
+            if parent != 'ROOT':
+                parent = id_to_name(parent).split('.')[0].replace('_', ' ')
+
+            classes.append(child)
+            if parent in children:
+                children[parent].append(child)
+            else:
+                children[parent] = [child]
+
+    elif names_file.split('.')[-1] == 'synonyms':
+        synonyms = dict()
+        for line in lines:
+            line = line.rstrip().split(',')
+            synonyms[line[0]] = line[1:]
+            classes.append(line[0])
+        pass
+    elif names_file.split('.')[-1] == 'names':
+        use_synonyms = False
+        for line in lines:
+            line = line.rstrip()
+            classes.append(line)
+    else:
+        return NotImplementedError, "Unrecognised file type : %s" % names_file.split('.')[-1]
+
+    overlaps = {}
+    syns = list()
+    tot_exact_count = set()
+    tot_total_count = set()
+    tot_syns_count = {'ANY': set()}
+    for cls in classes:
+        exact_count = set()
+        total_count = set()
+
+        synonym_counts = {}
+        # make sure has syns, if doesn't go the else and just do the noun
+        if use_synonyms and cls in synonyms.keys():
+
+            for noun in synonyms[cls]:
+                if noun in noun_freqs.keys():
+                    if noun == cls:
+                        exact_count = noun_freqs[cls]
+                        tot_exact_count = tot_exact_count.union(noun_freqs[noun])
+                    else:
+                        synonym_counts[noun] = noun_freqs[noun]
+                        tot_syns_count['ANY'] = tot_syns_count['ANY'].union(noun_freqs[noun])
+                    total_count = total_count.union(noun_freqs[noun])
+                    tot_total_count = tot_total_count.union(noun_freqs[noun])
+
+                syns.append(noun)
+        else:
+            if cls in noun_freqs.keys():
+                exact_count = noun_freqs[cls]
+                total_count = exact_count
+                tot_exact_count = tot_total_count.union(exact_count)
+                tot_total_count = tot_total_count.union(exact_count)
+
+        overlaps[cls] = {'count': set(), 'exact': exact_count, 'synonyms': synonym_counts, 'total': total_count}
+
+    overlaps['TOTAL'] = {'count': set(), 'exact': tot_exact_count, 'synonyms': tot_syns_count, 'total': tot_total_count}
+
+    if names_file.split('.')[-1] == 'tree':
+        classes.reverse()
+        for cls in classes:
+            overlaps[cls]['child_sum'] = set()
+        for cls in classes:
+            if cls in children:
+                for child in children[cls]:
+                    overlaps[cls]['child_sum'] = overlaps[cls]['child_sum'].union(overlaps[child]['child_sum'], overlaps[child]['total'])
+        for cls in classes:
+            overlaps[cls]['total'] = overlaps[cls]['total'].union(overlaps[cls]['child_sum'])
+
+        overlaps['ROOT'] = {'count': set(), 'exact': set(), 'synonyms': dict(), 'total': set(), 'child_sum': set()}
+        for child in children['ROOT']:
+            overlaps['ROOT']['child_sum'] = overlaps['ROOT']['child_sum'].union(overlaps[child]['child_sum'], overlaps[child]['total'])
+            overlaps['ROOT']['total'] = overlaps['ROOT']['child_sum']
+        classes.append('ROOT')
+        classes.reverse()
+    return overlaps, classes + syns
+
+
+def get_missing_noun_str(dataset, noun_freqs, top, style, classes=None):
+    if classes is None:
+        if not hasattr(dataset, 'category_synonyms'):
+            return ''
+        classes = []
+        for v in dataset.category_synonyms().values():
+            classes += v
 
     output_str = "\n\n\nMissing Nouns:\n"
     c = 0
-    for key, value in sorted(((value, key) for (key, value) in noun_freqs.items()), reverse=True):
-        if value in groundings:
+    for key, value in sorted(((len(value), key) for (key, value) in noun_freqs.items()), reverse=True):
+        if value in classes:
             # this exists as an object so don't count
             continue
         c += 1
@@ -486,3 +614,18 @@ def get_missing_noun_str(dataset, noun_freqs, top, style):
         else:
             output_str += "%s: %s\n" % (value, key)
     return output_str
+
+
+def concept_overlaps(dataset, names_file, use_synonyms=True, top=40, style='latex'):
+    noun_freqs = load_nouns(dataset)
+
+    overlaps, classes = obj_noun_overlaps_from_file(noun_freqs=noun_freqs, names_file=names_file, use_synonyms=use_synonyms)
+
+    if names_file.split('.')[-1] == 'tree':
+        order = classes
+    else:
+        order = None
+    coverage = get_noun_coverage_str(overlaps, [len(dataset.video_ids())], top=top, style=style, order=order)
+    missing = get_missing_noun_str(dataset, noun_freqs, top=top, style=style, classes=classes)
+
+    return coverage, missing

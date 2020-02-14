@@ -6,7 +6,7 @@ import os
 
 from gluoncv.data.base import VisionDataset
 
-from datasets.statistics import get_stats
+from datasets.statistics import get_stats, concept_overlaps
 from utils.video import extract_frames
 
 __all__ = ['MSRVTT']
@@ -132,7 +132,12 @@ class MSRVTT(VisionDataset):
 if __name__ == '__main__':
     train_dataset = MSRVTT(splits=['train'])
 
-    print(train_dataset.stats())
+    # overlaps, missing = concept_overlaps(train_dataset, os.path.join('datasets', 'names', 'imagenetvid.synonyms'))
+    overlaps, missing = concept_overlaps(train_dataset, os.path.join('datasets', 'names', 'filtered_det.tree'), use_synonyms=False, top=300)
+    print(overlaps)
+    print(missing)
+
+    # print(train_dataset.stats())
 
     # for s in tqdm(train_dataset, desc='Test Pass of Training Set'):
     #     pass
